@@ -132,19 +132,24 @@ export async function addClass(
 
 // クラスの更新
 export async function updateClass(id: number, updates: Partial<Class>) {
-  const now = new Date().toISOString();
-  const updatedClass = { ...updates, updatedAt: now };
-
-  return _executeTransaction(STORE_CLASSES, "readwrite", (store) => {
+  if (!db) db = await openDB();
+  return new Promise<void>((resolve, reject) => {
+    const transaction = db!.transaction([STORE_CLASSES], "readwrite");
+    const store = transaction.objectStore(STORE_CLASSES);
     const request = store.get(id);
+
     request.onsuccess = () => {
       const existingClass = request.result;
       if (existingClass) {
-        Object.assign(existingClass, updatedClass);
+        const now = new Date().toISOString();
+        Object.assign(existingClass, { ...updates, updatedAt: now });
         store.put(existingClass);
       }
     };
-    return request;
+
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(new Error("Transaction aborted"));
   });
 }
 
@@ -198,18 +203,24 @@ export async function updateNomination(
   id: number,
   updates: Partial<Nominations>,
 ) {
-  const now = new Date().toISOString();
-  const updatedNomination = { ...updates, createdAt: now };
-  return _executeTransaction(STORE_NOMINATIONS, "readwrite", (store) => {
+  if (!db) db = await openDB();
+  return new Promise<void>((resolve, reject) => {
+    const transaction = db!.transaction([STORE_NOMINATIONS], "readwrite");
+    const store = transaction.objectStore(STORE_NOMINATIONS);
     const request = store.get(id);
+
     request.onsuccess = () => {
       const existingNomination = request.result;
       if (existingNomination) {
-        Object.assign(existingNomination, updatedNomination);
+        const now = new Date().toISOString();
+        Object.assign(existingNomination, { ...updates, createdAt: now });
         store.put(existingNomination);
       }
     };
-    return request;
+
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(new Error("Transaction aborted"));
   });
 }
 
@@ -247,4 +258,28 @@ export async function findNominationsByDate(
     const request = index.getAll(IDBKeyRange.only(date));
     return request;
   }) as Promise<Nominations[]>;
+}
+// クラスIDでノミネーションを一括削除
+export async function deleteNominationsByClassId(classId: number) {
+  if (!db) {
+    db = await openDB();
+  }
+
+  return new Promise<void>((resolve, reject) => {
+    const transaction = db!.transaction([STORE_NOMINATIONS], "readwrite");
+    const store = transaction.objectStore(STORE_NOMINATIONS);
+    const index = store.index("classId");
+    const request = index.openKeyCursor(IDBKeyRange.only(classId));
+
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (cursor) {
+        store.delete(cursor.primaryKey);
+        cursor.continue();
+      } else {
+        resolve();
+      }
+    };
+    request.onerror = () => reject(request.error);
+  });
 }
