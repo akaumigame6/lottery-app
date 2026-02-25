@@ -1,113 +1,76 @@
-import { useEffect, useState } from "react";
-import { addPerson, getAllPeople, deletePerson, updatePerson, openDB } from "./db";
-import type { Person } from "./db";
+import { useState } from "react";
+import ManagePanel from "./components/ManagePanel";
+import LotteryPanel from "./components/LotteryPanel";
 
+/**
+ * App: アプリケーションのメインエントリーポイント
+ * 
+ * 機能:
+ * - ナビゲーション（抽選 / クラス管理）
+ * - 全体的なレイアウトテンプレート
+ * - モダンなヘッダーデザイン
+ */
 export default function App() {
-  const [name, setName] = useState("");
-  const [people, setPeople] = useState<Person[]>([]);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editingName, setEditingName] = useState("");
-
-  const load = async () => {
-    const data = await getAllPeople();
-    setPeople(data);
-  };
-
-  useEffect(() => {
-    let mounted = true; // マウントチェック用
-
-    const safeLoad = async () => {
-      // DB を開いてから読み込む（openDB は複数回呼んでも問題ない）
-      await openDB();
-      const data = await getAllPeople();
-      if (mounted) setPeople(data); // アンマウント済みなら setState しない
-    };
-
-    safeLoad();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  const add = async () => {
-    if (!name.trim()) return;
-    await addPerson(name);
-    setName("");
-    await load();
-  };
-
-  const startEdit = (p: Person) => {
-    setEditingId(p.id);
-    setEditingName(p.name);
-  };
-
-  const cancelEdit = () => {
-    setEditingId(null);
-    setEditingName("");
-  };
-
-  const saveEdit = async () => {
-    if (editingId == null) return;
-    if (!editingName.trim()) return;
-    await updatePerson({ id: editingId, name: editingName });
-    cancelEdit();
-    await load();
-  };
-
-  const remove = async (id: number) => {
-    await deletePerson(id);
-    // 編集中のアイテムを削除した場合は編集状態を解除
-    if (editingId === id) cancelEdit();
-    await load();
-  };
+  const [activeTab, setActiveTab] = useState<"lottery" | "manage">("lottery");
 
   return (
-    <div style={{ padding: 20, fontFamily: "sans-serif" }}>
-      <h1>IndexedDB Sample</h1>
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
+      {/* ヘッダー・ナビゲーション */}
+      <nav className="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-indigo-200 shadow-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+              </div>
+              <span className="font-black text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">
+                LOTTERY APP
+              </span>
+            </div>
 
-      <input
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder="名前を入力"
-        style={{ padding: 6 }}
-      />
-      <button onClick={add} style={{ marginLeft: 8 }}>
-        保存
-      </button>
+            <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
+              <button
+                onClick={() => setActiveTab("lottery")}
+                className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${
+                  activeTab === "lottery"
+                    ? "bg-white text-indigo-600 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                抽選
+              </button>
+              <button
+                onClick={() => setActiveTab("manage")}
+                className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${
+                  activeTab === "manage"
+                    ? "bg-white text-indigo-600 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                クラス管理
+              </button>
+            </div>
+          </div>
+        </div>
+      </nav>
 
-      <h2>保存された一覧</h2>
-      <ul>
-        {people.map((p) => (
-          <li key={p.id} style={{ marginBottom: 8 }}>
-            {editingId === p.id ? (
-              <>
-                <input
-                  value={editingName}
-                  onChange={(e) => setEditingName(e.target.value)}
-                  style={{ padding: 6 }}
-                />
-                <button onClick={saveEdit} style={{ marginLeft: 8 }}>
-                  保存
-                </button>
-                <button onClick={cancelEdit} style={{ marginLeft: 8 }}>
-                  キャンセル
-                </button>
-              </>
-            ) : (
-              <>
-                <span>{p.name}</span>
-                <button onClick={() => startEdit(p)} style={{ marginLeft: 8 }}>
-                  編集
-                </button>
-                <button onClick={() => remove(p.id)} style={{ marginLeft: 8 }}>
-                  削除
-                </button>
-              </>
-            )}
-          </li>
-        ))}
-      </ul>
+      {/* メインコンテンツ */}
+      <main className="py-8">
+        {activeTab === "lottery" ? (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <LotteryPanel />
+          </div>
+        ) : (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <ManagePanel />
+          </div>
+        )}
+      </main>
+
+      {/* フッター */}
+      <footer className="mt-auto py-8 text-center text-slate-400 text-sm">
+        <p>&copy; 2026 Lottery App Prototype. Built with IndexedDB & React.</p>
+      </footer>
     </div>
   );
 }
