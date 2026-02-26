@@ -255,7 +255,11 @@ export async function findNominationsByDate(
 ): Promise<Nominations[]> {
   return _executeTransaction(STORE_NOMINATIONS, "readonly", (store) => {
     const index = store.index("createdAt");
-    const request = index.getAll(IDBKeyRange.only(date));
+    // その日の開始〜終了時刻の範囲を指定
+    const startOfDay = `${date}T00:00:00.000Z`;
+    const endOfDay = `${date}T23:59:59.999Z`;
+    const range = IDBKeyRange.bound(startOfDay, endOfDay);
+    const request = index.getAll(range);
     return request;
   }) as Promise<Nominations[]>;
 }
@@ -276,10 +280,11 @@ export async function deleteNominationsByClassId(classId: number) {
       if (cursor) {
         store.delete(cursor.primaryKey);
         cursor.continue();
-      } else {
-        resolve();
       }
     };
     request.onerror = () => reject(request.error);
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(new Error("Transaction aborted"));
   });
 }
