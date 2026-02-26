@@ -155,6 +155,7 @@ export async function updateClass(id: number, updates: Partial<Class>) {
 
 // クラスの削除
 export async function deleteClass(id: number) {
+  await deleteNominationsByClassId(id);
   return _executeTransaction(STORE_CLASSES, "readwrite", (store) => {
     return store.delete(id);
   });
@@ -213,7 +214,7 @@ export async function updateNomination(
       const existingNomination = request.result;
       if (existingNomination) {
         const now = new Date().toISOString();
-        Object.assign(existingNomination, { ...updates, createdAt: now });
+        Object.assign(existingNomination, { ...updates, updatedAt: now });
         store.put(existingNomination);
       }
     };
