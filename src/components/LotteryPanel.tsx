@@ -50,10 +50,14 @@ export default function LotteryPanel() {
 
   const loadClasses = async () => {
     await lotteryDB.openDB();
-    const data = await lotteryDB.getAllClasses();
-    setClasses(data);
-    if (data.length > 0 && !selectedClassId) {
-      setSelectedClassId(data[0].id);
+    try {
+      const data = await lotteryDB.getAllClasses();
+      setClasses(data);
+      if (data.length > 0 && !selectedClassId) {
+        setSelectedClassId(data[0].id);
+      }
+    } catch (error) {
+      console.error("クラスの読み込みに失敗しました:", error);
     }
   };
 
@@ -123,7 +127,7 @@ export default function LotteryPanel() {
           await loadNominations(selectedClass.id);
         }
       }
-      if (timerRef.current) clearTimeout(timerRef.current);
+      if (timerRef.current !== null) clearTimeout(timerRef.current);
       setResult(selected);
       setIsDrawing(false);
     }, 1000);
