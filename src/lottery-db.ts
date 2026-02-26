@@ -103,12 +103,18 @@ async function _executeTransaction(
   }
 
   return new Promise((resolve, reject) => {
-    const transaction = db!.transaction([storeName], mode);
+    const transaction = db!.transaction([storeName], mode ?? "readonly");
     const store = transaction.objectStore(storeName);
 
     const request = callback(store);
-
-    request.onsuccess = () => resolve(request.result);
+    let result: unknown;
+    request.onsuccess = () => {
+      result = request.result;
+    };
+    transaction.oncomplete = () => resolve(result);
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () =>
+      reject(transaction.error ?? new Error("Transaction aborted"));
     request.onerror = () => reject(request.error);
   });
 }
