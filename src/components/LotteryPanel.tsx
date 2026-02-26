@@ -278,7 +278,8 @@ export default function LotteryPanel() {
         {isFullscreen && (
           <button
             onClick={() => setIsFullscreen(false)}
-            className="absolute top-8 right-8 text-white/40 hover:text-white transition-colors"
+            className="absolute top-8 right-8 text-slate-400 hover:text-slate-700 transition-colors"
+            aria-label="全画面モードを終了"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
