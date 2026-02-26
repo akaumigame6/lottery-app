@@ -146,7 +146,10 @@ export default function LotteryPanel() {
           </label>
           <select
             value={selectedClassId || ""}
-            onChange={(e) => setSelectedClassId(Number(e.target.value))}
+            onChange={(e) => {
+              const val = e.target.value;
+              setSelectedClassId(val ? Number(val) : null);
+            }}
             className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 outline-none transition-all font-medium text-slate-900 bg-slate-50"
           >
             {classes.map((cls) => (
