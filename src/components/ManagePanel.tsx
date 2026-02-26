@@ -107,6 +107,7 @@ export default function ManagePanel() {
 
   // 削除
   const handleDelete = async (id: number) => {
+    if (isSaving) return; // 二重操作防止
     if (!confirm("本当にこのクラスを削除しますか？")) return;
 
     try {
