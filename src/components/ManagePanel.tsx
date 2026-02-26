@@ -4,13 +4,13 @@ import type { Class } from "../lottery-db";
 
 /**
  * ManagePanel: クラス名簿を管理するためのコンポーネント
- * 
+ *
  * 機能:
  * - クラスの作成・一覧表示
  * - クラス名の編集
  * - メンバーの一括登録（テキストエリア方式: 1行1名）
  * - クラスの削除
- * 
+ *
  * デザインコンセプト:
  * - クリーンでモダンな配色
  * - インタラクティブなホバー効果
@@ -25,6 +25,7 @@ export default function ManagePanel() {
   const [editName, setEditName] = useState("");
   const [editItemsText, setEditItemsText] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // 初回読み込み
   useEffect(() => {
@@ -64,6 +65,7 @@ export default function ManagePanel() {
 
   // 保存（新規または更新）
   const handleSave = async () => {
+    if (isSaving) return; // 二重保存防止
     if (!editName.trim()) {
       alert("クラス名を入力してください");
       return;
@@ -75,6 +77,7 @@ export default function ManagePanel() {
       .filter((s) => s !== "");
 
     try {
+      setIsSaving(true);
       if (isEditing && selectedClassId !== null) {
         // 更新
         await lotteryDB.updateClass(selectedClassId, {
@@ -88,7 +91,7 @@ export default function ManagePanel() {
           items: items,
         });
         // 成功したら新しく作成されたクラスを選択状態にする（型キャストが必要な場合もあるが、DB側で返されるIDを使用）
-        if (typeof newId === 'number') {
+        if (typeof newId === "number") {
           setSelectedClassId(newId);
         }
       }
@@ -97,6 +100,8 @@ export default function ManagePanel() {
     } catch (error) {
       console.error("保存に失敗しました:", error);
       alert("保存中にエラーが発生しました");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -134,7 +139,6 @@ export default function ManagePanel() {
   return (
     <div className="max-w-5xl mx-auto p-6 bg-slate-50 min-h-screen">
       <div className="flex flex-col md:flex-row gap-8">
-        
         {/* 左側：クラス一覧サイドバー */}
         <aside className="w-full md:w-1/3 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-indigo-50/50">
@@ -148,7 +152,9 @@ export default function ManagePanel() {
           </div>
           <div className="divide-y divide-slate-100 max-h-[500px] overflow-y-auto">
             {classes.length === 0 ? (
-              <p className="p-8 text-center text-slate-400 text-sm">登録されているグループはありません</p>
+              <p className="p-8 text-center text-slate-400 text-sm">
+                登録されているグループはありません
+              </p>
             ) : (
               classes.map((cls) => (
                 <div
@@ -162,7 +168,9 @@ export default function ManagePanel() {
                 >
                   <div>
                     <div className="font-medium text-slate-900">{cls.name}</div>
-                    <div className="text-xs text-slate-500">{cls.items.length} 名登録</div>
+                    <div className="text-xs text-slate-500">
+                      {cls.items.length} 名登録
+                    </div>
                   </div>
                   <button
                     onClick={(e) => {
@@ -172,7 +180,23 @@ export default function ManagePanel() {
                     className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-red-600 transition-all"
                     title="削除"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M3 6h18" />
+                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                      <line x1="10" y1="11" x2="10" y2="17" />
+                      <line x1="14" y1="11" x2="14" y2="17" />
+                    </svg>
                   </button>
                 </div>
               ))
@@ -194,7 +218,9 @@ export default function ManagePanel() {
           <div className="space-y-6">
             {/* クラス名入力 */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">グループ名</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                グループ名
+              </label>
               <input
                 type="text"
                 value={editName}
@@ -207,9 +233,11 @@ export default function ManagePanel() {
             {/* 名簿入力（一括登録） */}
             <div>
               <div className="flex justify-between items-end mb-2">
-                <label className="block text-sm font-semibold text-slate-700">名簿（1行に1人）</label>
+                <label className="block text-sm font-semibold text-slate-700">
+                  名簿（1行に1人）
+                </label>
                 <span className="text-xs text-slate-400">
-                  {editItemsText.split("\n").filter(s => s.trim()).length} 名
+                  {editItemsText.split("\n").filter((s) => s.trim()).length} 名
                 </span>
               </div>
               <textarea
@@ -220,7 +248,8 @@ export default function ManagePanel() {
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 outline-none transition-all resize-none font-mono text-sm leading-relaxed"
               />
               <p className="mt-2 text-xs text-slate-400">
-                ヒント: 各行が1つの抽選対象になります。空行は自動的に除外されます。
+                ヒント:
+                各行が1つの抽選対象になります。空行は自動的に除外されます。
               </p>
             </div>
 
@@ -229,6 +258,7 @@ export default function ManagePanel() {
               {isEditing && (
                 <button
                   onClick={switchToNew}
+                  disabled={isSaving}
                   className="px-6 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-medium hover:bg-slate-50 transition-colors"
                 >
                   キャンセル
@@ -236,9 +266,14 @@ export default function ManagePanel() {
               )}
               <button
                 onClick={handleSave}
+                disabled={isSaving}
                 className="px-8 py-2.5 rounded-xl bg-indigo-600 text-white font-bold shadow-md shadow-indigo-200 hover:bg-indigo-700 hover:shadow-lg hover:-translate-y-0.5 transition-all active:translate-y-0"
               >
-                {isEditing ? "変更を保存" : "作成して保存"}
+                {isSaving
+                  ? "保存中..."
+                  : isEditing
+                    ? "変更を保存"
+                    : "作成して保存"}
               </button>
             </div>
           </div>
