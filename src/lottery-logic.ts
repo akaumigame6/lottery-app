@@ -25,8 +25,20 @@ export function drawRoundRobin(
 ): { selected: string | null; updatedDrawnItems: string[] } {
   if (items.length === 0) return { selected: null, updatedDrawnItems: [] };
 
-  // まだ当たっていない人を抽出
-  const remaining = items.filter((item) => !drawnItems.includes(item));
+  // まだ当たっていない人を抽出(重複名は個数で管理)
+  const consumed = new Map<string, number>();
+  for (const drawn of drawnItems) { 
+    consumed.set(drawn, (consumed.get(drawn) ?? 0) + 1);
+  }
+  
+  const remaining = items.filter((item) => {
+    const count = consumed.get(item) ?? 0;
+    if (count > 0) {
+      consumed.set(item, count - 1);
+      return false;
+    }
+    return true;
+  });
 
   // 全員当たった場合はリセットして再度抽選
   if (remaining.length === 0) {
