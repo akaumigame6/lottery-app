@@ -111,6 +111,7 @@ export default function ManagePanel() {
     if (!confirm("本当にこのクラスを削除しますか？")) return;
 
     try {
+      setIsSaving(true);
       await lotteryDB.deleteClass(id);
       if (selectedClassId === id) {
         setSelectedClassId(null);
@@ -118,6 +119,8 @@ export default function ManagePanel() {
       await loadClasses();
     } catch (error) {
       console.error("削除に失敗しました:", error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
