@@ -219,9 +219,9 @@ export default function LotteryPanel() {
         >
           <div className="text-center w-full">
             {(() => {
-              // 1. カンマで分割して各変数に代入
+              // 1. タブ(セルごと)で分割して各変数に代入
               const rawText = isDrawing ? shuffleName : result || "";
-              const parts = rawText.split(",").map((p) => p.trim());
+              const parts = rawText.split("\t").map((p) => p.trim());
               const item1 = parts[0] || ""; // 2段目
               const item2 = parts[1] || ""; // 1段目
               const item3 = parts[2] || ""; // 3段目
