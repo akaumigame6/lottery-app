@@ -8,7 +8,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
-dist
+# dist は公開するので含めない
 dist-ssr
 *.local
 
