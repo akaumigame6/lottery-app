@@ -28,7 +28,7 @@
 // findNominationsByDate(date)	日付でノミネーションを検索
 
 const DB_NAME = "NominationToolDB";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_CLASSES = "classes";
 const STORE_NOMINATIONS = "nominations";
 
