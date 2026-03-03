@@ -14,6 +14,7 @@ import { drawRandom, drawRoundRobin } from "../lottery-logic";
 export default function LotteryPanel() {
   const [classes, setClasses] = useState<Class[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
+
   const [mode, setMode] = useState<"random-no-save" | "round-robin">(
     "round-robin",
   );
@@ -25,6 +26,8 @@ export default function LotteryPanel() {
 
   const timerRef = useRef<number | null>(null);
   const finalizeTimerRef = useRef<number | null>(null);
+
+  const localStorageKey = "Lottery-App";
 
   useEffect(() => {
     loadClasses();
@@ -53,9 +56,24 @@ export default function LotteryPanel() {
     try {
       const data = await lotteryDB.getAllClasses();
       setClasses(data);
-      if (data.length > 0 && !selectedClassId) {
-        setSelectedClassId(data[0].id);
+      // localStorageから保存されているIDを読み込む
+      const savedState = localStorage.getItem(localStorageKey);
+      let savedId: number | null = null;
+      if (savedState) {
+        try {
+          const parsed = JSON.parse(savedState);
+          savedId = parsed.selectedClassId || null;
+        } catch (e) {
+          console.warn("localStorageのパースに失敗しました:", e);
+        }
       }
+      // savedIdが有効なクラスIDなら使う、そうでなければ最初のクラスを選ぶ
+      const validId = data.some((c) => c.id === savedId)
+        ? savedId
+        : data.length > 0
+          ? data[0].id
+          : null;
+      setSelectedClassId(validId);
     } catch (error) {
       console.error("クラスの読み込みに失敗しました:", error);
     }
@@ -75,6 +93,10 @@ export default function LotteryPanel() {
     if (selectedClassId) {
       loadNominations(selectedClassId);
       setResult(null);
+      localStorage.setItem(
+        localStorageKey,
+        JSON.stringify({ selectedClassId }),
+      );
     }
   }, [selectedClassId]);
 
@@ -152,7 +174,8 @@ export default function LotteryPanel() {
             value={selectedClassId || ""}
             onChange={(e) => {
               const val = e.target.value;
-              setSelectedClassId(val ? Number(val) : null);
+              const newId = val ? Number(val) : null;
+              setSelectedClassId(newId);
             }}
             className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 outline-none transition-all font-medium text-slate-900 bg-slate-50"
           >

@@ -99,7 +99,12 @@ export default function ManagePanel() {
       alert("保存しました");
     } catch (error) {
       console.error("保存に失敗しました:", error);
-      alert("保存中にエラーが発生しました");
+      // ConstraintError の場合は別のメッセージを表示
+      if (error instanceof Error && error.name === "ConstraintError") {
+        alert("クラス名が既に存在します。別のクラス名を入力してください");
+      } else {
+        alert("保存中にエラーが発生しました");
+      }
     } finally {
       setIsSaving(false);
     }
