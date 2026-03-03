@@ -101,7 +101,7 @@ export default function ManagePanel() {
       console.error("保存に失敗しました:", error);
       // ConstraintError の場合は別のメッセージを表示
       if (error instanceof Error && error.name === "ConstraintError") {
-        alert("テーブル名を変更してください");
+        alert("クラス名が既に存在します。別のクラス名を入力してください");
       } else {
         alert("保存中にエラーが発生しました");
       }
