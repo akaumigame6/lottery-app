@@ -63,7 +63,9 @@ export default function LotteryPanel() {
         try {
           const parsed = JSON.parse(savedState);
           savedId = parsed.selectedClassId || null;
-        } catch {}
+        } catch (e) {
+          console.warn("localStorageのパースに失敗しました:", e);
+        }
       }
       // savedIdが有効なクラスIDなら使う、そうでなければ最初のクラスを選ぶ
       const validId = data.some((c) => c.id === savedId)
