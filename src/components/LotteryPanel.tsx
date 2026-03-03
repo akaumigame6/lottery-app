@@ -66,7 +66,11 @@ export default function LotteryPanel() {
         } catch {}
       }
       // savedIdが有効なクラスIDなら使う、そうでなければ最初のクラスを選ぶ
-      const validId = data.some((c) => c.id === savedId) ? savedId : (data.length > 0 ? data[0].id : null);
+      const validId = data.some((c) => c.id === savedId)
+        ? savedId
+        : data.length > 0
+          ? data[0].id
+          : null;
       setSelectedClassId(validId);
     } catch (error) {
       console.error("クラスの読み込みに失敗しました:", error);
@@ -170,7 +174,6 @@ export default function LotteryPanel() {
               const val = e.target.value;
               const newId = val ? Number(val) : null;
               setSelectedClassId(newId);
-              localStorage.setItem(localStorageKey, JSON.stringify({ selectedClassId: newId }));
             }}
             className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 outline-none transition-all font-medium text-slate-900 bg-slate-50"
           >
