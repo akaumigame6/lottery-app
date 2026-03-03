@@ -1,6 +1,6 @@
 // IndexedDBを操作するモジュール
 // - データベース名: "NominationToolDB"
-// - バージョン: 1
+// - バージョン: 2
 // - オブジェクトストア:
 //   - "classes": { id, name, items(カンマ区切り文字列), createdAt, updatedAt }
 //   - "nominations": { id, classId, itemName, createdAt }
@@ -66,6 +66,7 @@ export async function openDB(): Promise<IDBDatabase> {
     req.onupgradeneeded = (event) => {
       const database = (event.target as IDBOpenDBRequest).result;
       const transaction = (event.target as IDBOpenDBRequest).transaction!;
+      const oldVersion = event.oldVersion;
 
       let classStore: IDBObjectStore;
       if (!database.objectStoreNames.contains(STORE_CLASSES)) {
@@ -73,15 +74,17 @@ export async function openDB(): Promise<IDBDatabase> {
           keyPath: "id",
           autoIncrement: true,
         });
+        // 新規作成時は最初からユニークインデックスを作成
+        classStore.createIndex("name", "name", { unique: true });
       } else {
         classStore = transaction.objectStore(STORE_CLASSES);
-      }
 
-      // v1 → v2 アップグレード時、既存のインデックスを削除して再作成
-      if (classStore.indexNames.contains("name")) {
-        classStore.deleteIndex("name");
+        // v1 → v2 アップグレード時、既存のインデックスを削除して再作成
+        if (oldVersion < 2 && classStore.indexNames.contains("name")) {
+          classStore.deleteIndex("name");
+          classStore.createIndex("name", "name", { unique: true });
+        }
       }
-      classStore.createIndex("name", "name", { unique: true });
 
       if (!database.objectStoreNames.contains(STORE_NOMINATIONS)) {
         const nominationStore = database.createObjectStore(STORE_NOMINATIONS, {
