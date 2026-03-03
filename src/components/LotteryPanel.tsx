@@ -162,6 +162,23 @@ export default function LotteryPanel() {
     setResult(null);
   };
 
+  const handleRemoveFromHistory = async (nominationId: number) => {
+    if (!confirm("この学生を未抽選状態に戻します。よろしいですか？")) return;
+    await lotteryDB.deleteNomination(nominationId);
+    if (selectedClassId) {
+      await loadNominations(selectedClassId);
+    }
+    try {
+      await lotteryDB.deleteNomination(nominationId);
+      if (selectedClassId) {
+        await loadNominations(selectedClassId);
+      }
+    } catch (error) {
+      console.error("履歴の削除に失敗しました:", error);
+      alert("履歴の削除に失敗しました");
+    }
+  };
+
   return (
     <div className="max-w-5xl mx-auto p-6 bg-slate-50 min-h-screen space-y-6">
       {/* 1. 設定セクション (ManagePanel のヘッダースタイル) */}
@@ -391,6 +408,14 @@ export default function LotteryPanel() {
                   <span className="font-medium text-slate-700 text-sm">
                     {nom.itemName}
                   </span>
+                  <button
+                    onClick={() => handleRemoveFromHistory(nom.id)}
+                    disabled={isDrawing}
+                    aria-label={`「${nom.itemName}」を履歴から削除して未抽選状態に戻す`}
+                    className="font-bold text-xs text-slate-400 hover:text-red-500 transition-colors"
+                  >
+                    X
+                  </button>
                 </div>
               ))
             )}
