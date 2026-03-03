@@ -74,7 +74,7 @@ export async function openDB(): Promise<IDBDatabase> {
           keyPath: "id",
           autoIncrement: true,
         });
-        classStore.createIndex("name", "name", { unique: false });
+        classStore.createIndex("name", "name", { unique: true });
       }
       if (!database.objectStoreNames.contains(STORE_NOMINATIONS)) {
         const nominationStore = database.createObjectStore(STORE_NOMINATIONS, {
