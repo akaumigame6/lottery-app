@@ -65,17 +65,24 @@ export async function openDB(): Promise<IDBDatabase> {
     // データベースのスキーマを作る / 更新するハンドラ
     req.onupgradeneeded = (event) => {
       const database = (event.target as IDBOpenDBRequest).result;
+      const transaction = (event.target as IDBOpenDBRequest).transaction!;
 
-      // object store 作成: "classes", "nominations"
-      // keyPath: "id" を指定するとオブジェクトの `id` プロパティがキーとして使われる
-      // autoIncrement: true にするとキーは自動的にインクリメントされる
+      let classStore: IDBObjectStore;
       if (!database.objectStoreNames.contains(STORE_CLASSES)) {
-        const classStore = database.createObjectStore(STORE_CLASSES, {
+        classStore = database.createObjectStore(STORE_CLASSES, {
           keyPath: "id",
           autoIncrement: true,
         });
-        classStore.createIndex("name", "name", { unique: true });
+      } else {
+        classStore = transaction.objectStore(STORE_CLASSES);
       }
+
+      // v1 → v2 アップグレード時、既存のインデックスを削除して再作成
+      if (classStore.indexNames.contains("name")) {
+        classStore.deleteIndex("name");
+      }
+      classStore.createIndex("name", "name", { unique: true });
+
       if (!database.objectStoreNames.contains(STORE_NOMINATIONS)) {
         const nominationStore = database.createObjectStore(STORE_NOMINATIONS, {
           keyPath: "id",
