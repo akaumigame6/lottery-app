@@ -168,6 +168,15 @@ export default function LotteryPanel() {
     if (selectedClassId) {
       await loadNominations(selectedClassId);
     }
+    try {
+      await lotteryDB.deleteNomination(nominationId);
+      if (selectedClassId) {
+        await loadNominations(selectedClassId);
+      }
+    } catch (error) {
+      console.error("履歴の削除に失敗しました:", error);
+      alert("履歴の削除に失敗しました");
+    }
   };
 
   return (
@@ -401,6 +410,8 @@ export default function LotteryPanel() {
                   </span>
                   <button
                     onClick={() => handleRemoveFromHistory(nom.id)}
+                    disabled={isDrawing}
+                    aria-label={`「${nom.itemName}」を履歴から削除して未抽選状態に戻す`}
                     className="font-bold text-xs text-slate-400 hover:text-red-500 transition-colors"
                   >
                     X
