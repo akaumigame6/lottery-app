@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ManagePanel from "./components/ManagePanel";
 import LotteryPanel from "./components/LotteryPanel";
 
@@ -12,6 +12,11 @@ import LotteryPanel from "./components/LotteryPanel";
  */
 export default function App() {
   const [activeTab, setActiveTab] = useState<"lottery" | "manage">("lottery");
+
+  // タブの切り替えごとにトップに戻す
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [activeTab]);
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
