@@ -157,9 +157,14 @@ export default function LotteryPanel() {
 
   const handleClearHistory = async () => {
     if (!selectedGroupId || !confirm("履歴をリセットしますか？")) return;
-    await lotteryDB.deleteNominationsByGroupId(selectedGroupId);
-    await loadNominations(selectedGroupId);
-    setResult(null);
+    try {
+      await lotteryDB.deleteNominationsByGroupId(selectedGroupId);
+      await loadNominations(selectedGroupId);
+      setResult(null);
+    } catch (error) {
+      console.error("履歴のリセットに失敗しました:", error);
+      alert("履歴のリセットに失敗しました");
+    }
   };
 
   const handleRemoveFromHistory = async (nominationId: number) => {
