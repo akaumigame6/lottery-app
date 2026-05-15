@@ -203,11 +203,36 @@ export async function updateGroup(id: number, updates: Partial<Group>) {
   });
 }
 
-// グループの削除
+// グループと関連するノミネーションの削除
 export async function deleteGroup(id: number) {
-  await deleteNominationsByGroupId(id);
-  return _executeTransaction(STORE_GROUPS, "readwrite", (store) => {
-    return store.delete(id);
+  if (!db) db = await openDB();
+
+  return new Promise<void>((resolve, reject) => {
+    const transaction = db!.transaction(
+      [STORE_GROUPS, STORE_NOMINATIONS],
+      "readwrite",
+    );
+    const groupStore = transaction.objectStore(STORE_GROUPS);
+    const nominationStore = transaction.objectStore(STORE_NOMINATIONS);
+    const cursorRequest = nominationStore
+      .index("groupId")
+      .openKeyCursor(IDBKeyRange.only(id));
+
+    cursorRequest.onsuccess = () => {
+      const cursor = cursorRequest.result;
+      if (cursor) {
+        nominationStore.delete(cursor.primaryKey);
+        cursor.continue();
+        return;
+      }
+
+      groupStore.delete(id);
+    };
+
+    cursorRequest.onerror = () => reject(cursorRequest.error);
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(new Error("Transaction aborted"));
   });
 }
 
