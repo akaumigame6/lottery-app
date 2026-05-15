@@ -24,6 +24,7 @@ export default function ManagePanel() {
   // 編集用の一時的な状態
   const [editName, setEditName] = useState("");
   const [editItemsText, setEditItemsText] = useState("");
+  const [editLotteryMessage, setEditLotteryMessage] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -39,12 +40,14 @@ export default function ManagePanel() {
       if (selected) {
         setEditName(selected.name);
         setEditItemsText(selected.items.join("\n"));
+        setEditLotteryMessage(selected.lotteryMessage ?? "");
         setIsEditing(true);
       }
     } else {
       // 新規作成モード
       setEditName("");
       setEditItemsText("");
+      setEditLotteryMessage("");
       setIsEditing(false);
     }
   }, [selectedClassId, classes]);
@@ -83,12 +86,14 @@ export default function ManagePanel() {
         await lotteryDB.updateClass(selectedClassId, {
           name: editName,
           items: items,
+          lotteryMessage: editLotteryMessage,
         });
       } else {
         // 新規追加
         const newId = await lotteryDB.addClass({
           name: editName,
           items: items,
+          lotteryMessage: editLotteryMessage,
         });
         // 成功したら新しく作成されたクラスを選択状態にする（型キャストが必要な場合もあるが、DB側で返されるIDを使用）
         if (typeof newId === "number") {
@@ -134,6 +139,7 @@ export default function ManagePanel() {
     setSelectedClassId(null);
     setEditName("");
     setEditItemsText("");
+    setEditLotteryMessage("");
     setIsEditing(false);
   };
 
@@ -237,6 +243,23 @@ export default function ManagePanel() {
                 placeholder="例: 3年1組, 数学B"
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 outline-none transition-all"
               />
+            </div>
+
+            {/* 抽選後メッセージ入力 */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                抽選後メッセージ (オプション)
+              </label>
+              <input
+                type="text"
+                value={editLotteryMessage}
+                onChange={(e) => setEditLotteryMessage(e.target.value)}
+                placeholder="例: おめでとうございます！"
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 outline-none transition-all"
+              />
+              <p className="mt-2 text-xs text-slate-400">
+                ヒント: 未入力の場合は「おめでとうございます！」、半角・全角スペースのみの場合は何も表示しません。
+              </p>
             </div>
 
             {/* 名簿入力（一括登録） */}

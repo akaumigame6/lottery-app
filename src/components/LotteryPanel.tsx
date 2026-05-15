@@ -266,6 +266,16 @@ export default function LotteryPanel() {
               const item2 = parts[1] || ""; // 1段目
               const item3 = parts[2] || ""; // 3段目
 
+              let customMessage = "";
+              if (result) {
+                const msg = selectedClass?.lotteryMessage;
+                if (msg === undefined || msg === "") {
+                  customMessage = "おめでとうございます！";
+                } else {
+                  customMessage = msg;
+                }
+              }
+
               return (
                 <div className="space-y-4">
                   {/* item1: 上段 (小さめ) */}
@@ -288,8 +298,7 @@ export default function LotteryPanel() {
                   <div
                     className={`font-bold text-indigo-600 flex items-center justify-center ${isFullscreen ? "text-4xl " : "text-xl"} h-10`}
                   >
-                    {!isDrawing &&
-                      (item3 || (result ? "おめでとうございます！" : ""))}
+                    {!isDrawing && (item3 || customMessage)}
                   </div>
                 </div>
               );
