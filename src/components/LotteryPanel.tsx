@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import * as lotteryDB from "../lottery-db";
-import type { Class, Nominations } from "../lottery-db";
+import type { Group, Nominations } from "../lottery-db";
 import { drawRandom, drawRoundRobin } from "../lottery-logic";
 
 /**
@@ -12,8 +12,8 @@ import { drawRandom, drawRoundRobin } from "../lottery-logic";
  * - PC一画面での視認性を考慮したレイアウト
  */
 export default function LotteryPanel() {
-  const [classes, setClasses] = useState<Class[]>([]);
-  const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
 
   const [mode, setMode] = useState<"random-no-save" | "round-robin">(
     "round-robin",
@@ -30,7 +30,7 @@ export default function LotteryPanel() {
   const localStorageKey = "Lottery-App";
 
   useEffect(() => {
-    loadClasses();
+    loadGroups();
     const handleKeydown = (e: KeyboardEvent) => {
       if (e.key === "Escape") setIsFullscreen(false);
     };
@@ -51,36 +51,36 @@ export default function LotteryPanel() {
     };
   }, [isFullscreen]);
 
-  const loadClasses = async () => {
+  const loadGroups = async () => {
     await lotteryDB.openDB();
     try {
-      const data = await lotteryDB.getAllClasses();
-      setClasses(data);
+      const data = await lotteryDB.getAllGroups();
+      setGroups(data);
       // localStorageから保存されているIDを読み込む
       const savedState = localStorage.getItem(localStorageKey);
       let savedId: number | null = null;
       if (savedState) {
         try {
           const parsed = JSON.parse(savedState);
-          savedId = parsed.selectedClassId || null;
+          savedId = parsed.selectedGroupId || null;
         } catch (e) {
           console.warn("localStorageのパースに失敗しました:", e);
         }
       }
-      // savedIdが有効なクラスIDなら使う、そうでなければ最初のクラスを選ぶ
-      const validId = data.some((c) => c.id === savedId)
+      // savedIdが有効なグループIDなら使う、そうでなければ最初のグループを選ぶ
+      const validId = data.some((g) => g.id === savedId)
         ? savedId
         : data.length > 0
           ? data[0].id
           : null;
-      setSelectedClassId(validId);
+      setSelectedGroupId(validId);
     } catch (error) {
-      console.error("クラスの読み込みに失敗しました:", error);
+      console.error("グループの読み込みに失敗しました:", error);
     }
   };
 
-  const loadNominations = async (classId: number) => {
-    const data = await lotteryDB.findNominationsByClassId(classId);
+  const loadNominations = async (groupId: number) => {
+    const data = await lotteryDB.findNominationsByGroupId(groupId);
     setNominations(
       data.sort(
         (a, b) =>
@@ -90,28 +90,28 @@ export default function LotteryPanel() {
   };
 
   useEffect(() => {
-    if (selectedClassId) {
-      loadNominations(selectedClassId);
+    if (selectedGroupId) {
+      loadNominations(selectedGroupId);
       setResult(null);
       localStorage.setItem(
         localStorageKey,
-        JSON.stringify({ selectedClassId }),
+        JSON.stringify({ selectedGroupId }),
       );
     }
-  }, [selectedClassId]);
+  }, [selectedGroupId]);
 
-  const selectedClass = classes.find((c) => c.id === selectedClassId);
-  const currentClassNominations = nominations.filter((n) =>
-    selectedClass?.items.includes(n.itemName),
+  const selectedGroup = groups.find((g) => g.id === selectedGroupId);
+  const currentGroupNominations = nominations.filter((n) =>
+    selectedGroup?.items.includes(n.itemName),
   );
   const isAllDrawn =
-    selectedClass &&
-    currentClassNominations.length >= selectedClass.items.length;
+    selectedGroup &&
+    currentGroupNominations.length >= selectedGroup.items.length;
 
   const handleDraw = async () => {
     if (
-      !selectedClass ||
-      selectedClass.items.length === 0 ||
+      !selectedGroup ||
+      selectedGroup.items.length === 0 ||
       (mode === "round-robin" && isAllDrawn)
     )
       return;
@@ -122,8 +122,8 @@ export default function LotteryPanel() {
     let count = 0;
     const shuffle = () => {
       setShuffleName(
-        selectedClass.items[
-          Math.floor(Math.random() * selectedClass.items.length)
+        selectedGroup.items[
+          Math.floor(Math.random() * selectedGroup.items.length)
         ],
       );
       count++;
@@ -136,17 +136,17 @@ export default function LotteryPanel() {
     finalizeTimerRef.current = window.setTimeout(async () => {
       let selected: string | null = null;
       if (mode === "random-no-save") {
-        selected = drawRandom(selectedClass.items);
+        selected = drawRandom(selectedGroup.items);
       } else {
         const drawnNames = nominations.map((n) => n.itemName);
-        const res = drawRoundRobin(selectedClass.items, drawnNames);
+        const res = drawRoundRobin(selectedGroup.items, drawnNames);
         selected = res.selected;
         if (selected) {
           await lotteryDB.addNomination({
-            classId: selectedClass.id,
+            groupId: selectedGroup.id,
             itemName: selected,
           });
-          await loadNominations(selectedClass.id);
+          await loadNominations(selectedGroup.id);
         }
       }
       if (timerRef.current !== null) clearTimeout(timerRef.current);
@@ -156,22 +156,18 @@ export default function LotteryPanel() {
   };
 
   const handleClearHistory = async () => {
-    if (!selectedClassId || !confirm("履歴をリセットしますか？")) return;
-    await lotteryDB.deleteNominationsByClassId(selectedClassId);
-    await loadNominations(selectedClassId);
+    if (!selectedGroupId || !confirm("履歴をリセットしますか？")) return;
+    await lotteryDB.deleteNominationsByGroupId(selectedGroupId);
+    await loadNominations(selectedGroupId);
     setResult(null);
   };
 
   const handleRemoveFromHistory = async (nominationId: number) => {
-    if (!confirm("この学生を未抽選状態に戻します。よろしいですか？")) return;
-    await lotteryDB.deleteNomination(nominationId);
-    if (selectedClassId) {
-      await loadNominations(selectedClassId);
-    }
+    if (!confirm("この人を未抽選状態に戻します。よろしいですか？")) return;
     try {
       await lotteryDB.deleteNomination(nominationId);
-      if (selectedClassId) {
-        await loadNominations(selectedClassId);
+      if (selectedGroupId) {
+        await loadNominations(selectedGroupId);
       }
     } catch (error) {
       console.error("履歴の削除に失敗しました:", error);
@@ -188,17 +184,17 @@ export default function LotteryPanel() {
             グループ選択
           </label>
           <select
-            value={selectedClassId || ""}
+            value={selectedGroupId || ""}
             onChange={(e) => {
               const val = e.target.value;
               const newId = val ? Number(val) : null;
-              setSelectedClassId(newId);
+              setSelectedGroupId(newId);
             }}
             className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 outline-none transition-all font-medium text-slate-900 bg-slate-50"
           >
-            {classes.map((cls) => (
-              <option key={cls.id} value={cls.id}>
-                {cls.name}
+            {groups.map((group) => (
+              <option key={group.id} value={group.id}>
+                {group.name}
               </option>
             ))}
           </select>
@@ -268,7 +264,7 @@ export default function LotteryPanel() {
 
               let customMessage = "";
               if (result) {
-                const msg = selectedClass?.lotteryMessage;
+                const msg = selectedGroup?.lotteryMessage;
                 if (msg === undefined || msg === "") {
                   customMessage = "おめでとうございます！";
                 } else {
@@ -284,7 +280,7 @@ export default function LotteryPanel() {
                   >
                     {isDrawing
                       ? "DRAWING..."
-                      : item2 || selectedClass?.name || "STANDBY"}
+                      : item2 || selectedGroup?.name || "STANDBY"}
                   </div>
 
                   {/* item2: 中段 (メイン: 特大) */}
@@ -363,15 +359,15 @@ export default function LotteryPanel() {
           </h3>
           <div className="flex justify-between items-end mb-2">
             <span className="text-4xl font-bold text-slate-900">
-              {currentClassNominations.length}
+              {currentGroupNominations.length}
               <small className="text-slate-400 text-lg ml-1">
-                /{selectedClass?.items.length || 0}
+                /{selectedGroup?.items.length || 0}
               </small>
             </span>
             <span className="text-indigo-600 font-bold">
               {Math.round(
-                (currentClassNominations.length /
-                  (selectedClass?.items.length || 1)) *
+                (currentGroupNominations.length /
+                  (selectedGroup?.items.length || 1)) *
                   100,
               )}
               %
@@ -381,7 +377,7 @@ export default function LotteryPanel() {
             <div
               className="bg-indigo-600 h-full transition-all duration-700"
               style={{
-                width: `${(currentClassNominations.length / (selectedClass?.items.length || 1)) * 100}%`,
+                width: `${(currentGroupNominations.length / (selectedGroup?.items.length || 1)) * 100}%`,
               }}
             ></div>
           </div>

@@ -54,7 +54,7 @@ export default function App() {
                     : "text-slate-500 hover:text-slate-700"
                 }`}
               >
-                クラス管理
+                グループ管理
               </button>
             </div>
           </div>
