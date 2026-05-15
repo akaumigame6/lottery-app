@@ -271,8 +271,6 @@ export default function LotteryPanel() {
                 const msg = selectedClass?.lotteryMessage;
                 if (msg === undefined || msg === "") {
                   customMessage = "おめでとうございます！";
-                } else if (msg === " " || msg === "　") {
-                  customMessage = "";
                 } else {
                   customMessage = msg;
                 }
