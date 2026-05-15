@@ -36,6 +36,7 @@ export type Class = {
   id: number;
   name: string;
   items: string[]; // カンマ区切りの文字列 (例)"aaa,bbb,ccc" "aaa,bbb"など
+  lotteryMessage?: string; // 抽選後のメッセージ
   createdAt: string;
   updatedAt: string;
 };
