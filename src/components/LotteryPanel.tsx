@@ -52,8 +52,8 @@ export default function LotteryPanel() {
   }, [isFullscreen]);
 
   const loadGroups = async () => {
-    await lotteryDB.openDB();
     try {
+      await lotteryDB.openDB();
       const data = await lotteryDB.getAllGroups();
       setGroups(data);
       // localStorageから保存されているIDを読み込む
@@ -91,7 +91,9 @@ export default function LotteryPanel() {
 
   useEffect(() => {
     if (selectedGroupId) {
-      loadNominations(selectedGroupId);
+      loadNominations(selectedGroupId).catch((error) => {
+        console.error("ノミネーションの読み込みに失敗しました:", error);
+      });
       setResult(null);
       localStorage.setItem(
         localStorageKey,
@@ -108,7 +110,7 @@ export default function LotteryPanel() {
     selectedGroup &&
     currentGroupNominations.length >= selectedGroup.items.length;
 
-  const handleDraw = async () => {
+  const handleDraw = () => {
     if (
       !selectedGroup ||
       selectedGroup.items.length === 0 ||
@@ -142,11 +144,16 @@ export default function LotteryPanel() {
         const res = drawRoundRobin(selectedGroup.items, drawnNames);
         selected = res.selected;
         if (selected) {
-          await lotteryDB.addNomination({
-            groupId: selectedGroup.id,
-            itemName: selected,
-          });
-          await loadNominations(selectedGroup.id);
+          try {
+            await lotteryDB.addNomination({
+              groupId: selectedGroup.id,
+              itemName: selected,
+            });
+            await loadNominations(selectedGroup.id);
+          } catch (error) {
+            console.error("履歴の更新に失敗しました:", error);
+            alert("履歴の更新に失敗しました");
+          }
         }
       }
       if (timerRef.current !== null) clearTimeout(timerRef.current);
