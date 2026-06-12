@@ -27,7 +27,7 @@ export default function App() {
             <button onClick={() => setActiveTab("lottery")}>
               <div className="flex items-center gap-2">
                 <img
-                  src="/LotteyApp_icon_2.svg"
+                  src={`${import.meta.env.BASE_URL}LotteyApp_icon_2.svg`}
                   alt="LOTTERY APP Icon"
                   className="w-8 h-8"
                 />
