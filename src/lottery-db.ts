@@ -98,12 +98,14 @@ export async function openDB(): Promise<IDBDatabase> {
         // (B) nominations ストアの classId を groupId に置換し、インデックスを張り替える
         if (database.objectStoreNames.contains(STORE_NOMINATIONS)) {
           const nominationStore = transaction.objectStore(STORE_NOMINATIONS);
-          
+
           if (nominationStore.indexNames.contains("classId")) {
             nominationStore.deleteIndex("classId");
           }
           if (!nominationStore.indexNames.contains("groupId")) {
-            nominationStore.createIndex("groupId", "groupId", { unique: false });
+            nominationStore.createIndex("groupId", "groupId", {
+              unique: false,
+            });
           }
 
           nominationStore.openCursor().onsuccess = (e) => {
@@ -128,7 +130,9 @@ export async function openDB(): Promise<IDBDatabase> {
           autoIncrement: true,
         });
         nominationStore.createIndex("groupId", "groupId", { unique: false });
-        nominationStore.createIndex("createdAt", "createdAt", { unique: false });
+        nominationStore.createIndex("createdAt", "createdAt", {
+          unique: false,
+        });
       }
     };
   });
@@ -195,11 +199,12 @@ export async function updateGroup(
       const existingGroup = request.result;
       if (existingGroup) {
         const now = new Date().toISOString();
-        
+
         // 不変フィールドの実行時フィルタリング
         const filteredUpdates = { ...updates };
         if ("id" in filteredUpdates) delete (filteredUpdates as any).id;
-        if ("createdAt" in filteredUpdates) delete (filteredUpdates as any).createdAt;
+        if ("createdAt" in filteredUpdates)
+          delete (filteredUpdates as any).createdAt;
 
         Object.assign(existingGroup, filteredUpdates, { updatedAt: now });
         store.put(existingGroup);
@@ -302,9 +307,10 @@ export async function updateNomination(
         // 不変フィールドの実行時フィルタリング
         const filteredUpdates = { ...updates };
         if ("id" in filteredUpdates) delete (filteredUpdates as any).id;
-        if ("createdAt" in filteredUpdates) delete (filteredUpdates as any).createdAt;
+        if ("createdAt" in filteredUpdates)
+          delete (filteredUpdates as any).createdAt;
 
-        Object.assign(existingNomination, filteredUpdates, { updatedAt: now });
+        Object.assign(existingNomination, filteredUpdates);
         store.put(existingNomination);
       }
     };
