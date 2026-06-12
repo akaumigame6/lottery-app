@@ -181,7 +181,10 @@ export async function addGroup(
 }
 
 // グループの更新
-export async function updateGroup(id: number, updates: Partial<Group>) {
+export async function updateGroup(
+  id: number,
+  updates: Partial<Omit<Group, "id" | "createdAt" | "updatedAt">>,
+) {
   if (!db) db = await openDB();
   return new Promise<void>((resolve, reject) => {
     const transaction = db!.transaction([STORE_GROUPS], "readwrite");
@@ -192,7 +195,13 @@ export async function updateGroup(id: number, updates: Partial<Group>) {
       const existingGroup = request.result;
       if (existingGroup) {
         const now = new Date().toISOString();
-        Object.assign(existingGroup, { ...updates, updatedAt: now });
+        
+        // 不変フィールドの実行時フィルタリング
+        const filteredUpdates = { ...updates };
+        if ("id" in filteredUpdates) delete (filteredUpdates as any).id;
+        if ("createdAt" in filteredUpdates) delete (filteredUpdates as any).createdAt;
+
+        Object.assign(existingGroup, filteredUpdates, { updatedAt: now });
         store.put(existingGroup);
       }
     };
@@ -277,7 +286,7 @@ export async function addNomination(
 // ノミネーションの更新
 export async function updateNomination(
   id: number,
-  updates: Partial<Nominations>,
+  updates: Partial<Omit<Nominations, "id" | "createdAt">>,
 ) {
   if (!db) db = await openDB();
   return new Promise<void>((resolve, reject) => {
@@ -289,7 +298,13 @@ export async function updateNomination(
       const existingNomination = request.result;
       if (existingNomination) {
         const now = new Date().toISOString();
-        Object.assign(existingNomination, { ...updates, updatedAt: now });
+
+        // 不変フィールドの実行時フィルタリング
+        const filteredUpdates = { ...updates };
+        if ("id" in filteredUpdates) delete (filteredUpdates as any).id;
+        if ("createdAt" in filteredUpdates) delete (filteredUpdates as any).createdAt;
+
+        Object.assign(existingNomination, filteredUpdates, { updatedAt: now });
         store.put(existingNomination);
       }
     };
