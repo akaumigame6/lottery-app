@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
 import * as lotteryDB from "../lottery-db";
-import type { Class } from "../lottery-db";
+import type { Group } from "../lottery-db";
 
 /**
- * ManagePanel: クラス名簿を管理するためのコンポーネント
+ * ManagePanel: グループ名簿を管理するためのコンポーネント
  *
  * 機能:
- * - クラスの作成・一覧表示
- * - クラス名の編集
+ * - グループの作成・一覧表示
+ * - グループ名の編集
  * - メンバーの一括登録（テキストエリア方式: 1行1名）
- * - クラスの削除
+ * - グループの削除
  *
  * デザインコンセプト:
  * - クリーンでモダンな配色
@@ -17,8 +17,8 @@ import type { Class } from "../lottery-db";
  * - グラスモルフィズム要素を取り入れたプレミアムな外観
  */
 export default function ManagePanel() {
-  const [classes, setClasses] = useState<Class[]>([]);
-  const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // 編集用の一時的な状態
@@ -30,13 +30,13 @@ export default function ManagePanel() {
 
   // 初回読み込み
   useEffect(() => {
-    loadClasses();
+    loadGroups();
   }, []);
 
-  // クラスが選択されたときに、編集用テキストを同期する
+  // グループが選択されたときに、編集用テキストを同期する
   useEffect(() => {
-    if (selectedClassId) {
-      const selected = classes.find((c) => c.id === selectedClassId);
+    if (selectedGroupId) {
+      const selected = groups.find((g) => g.id === selectedGroupId);
       if (selected) {
         setEditName(selected.name);
         setEditItemsText(selected.items.join("\n"));
@@ -50,15 +50,15 @@ export default function ManagePanel() {
       setEditLotteryMessage("");
       setIsEditing(false);
     }
-  }, [selectedClassId, classes]);
+  }, [selectedGroupId, groups]);
 
-  // IndexedDBからクラス一覧を取得
-  const loadClasses = async () => {
+  // IndexedDBからグループ一覧を取得
+  const loadGroups = async () => {
     try {
       setIsLoading(true);
       await lotteryDB.openDB();
-      const data = await lotteryDB.getAllClasses();
-      setClasses(data);
+      const data = await lotteryDB.getAllGroups();
+      setGroups(data);
     } catch (error) {
       console.error("データの読み込みに失敗しました:", error);
     } finally {
@@ -70,7 +70,7 @@ export default function ManagePanel() {
   const handleSave = async () => {
     if (isSaving) return; // 二重保存防止
     if (!editName.trim()) {
-      alert("クラス名を入力してください");
+      alert("グループ名を入力してください");
       return;
     }
 
@@ -81,32 +81,32 @@ export default function ManagePanel() {
 
     try {
       setIsSaving(true);
-      if (isEditing && selectedClassId !== null) {
+      if (isEditing && selectedGroupId !== null) {
         // 更新
-        await lotteryDB.updateClass(selectedClassId, {
+        await lotteryDB.updateGroup(selectedGroupId, {
           name: editName,
           items: items,
           lotteryMessage: editLotteryMessage,
         });
       } else {
         // 新規追加
-        const newId = await lotteryDB.addClass({
+        const newId = await lotteryDB.addGroup({
           name: editName,
           items: items,
           lotteryMessage: editLotteryMessage,
         });
-        // 成功したら新しく作成されたクラスを選択状態にする（型キャストが必要な場合もあるが、DB側で返されるIDを使用）
+        // 成功したら新しく作成されたグループを選択状態にする（型キャストが必要な場合もあるが、DB側で返されるIDを使用）
         if (typeof newId === "number") {
-          setSelectedClassId(newId);
+          setSelectedGroupId(newId);
         }
       }
-      await loadClasses();
+      await loadGroups();
       alert("保存しました");
     } catch (error) {
       console.error("保存に失敗しました:", error);
       // ConstraintError の場合は別のメッセージを表示
       if (error instanceof Error && error.name === "ConstraintError") {
-        alert("クラス名が既に存在します。別のクラス名を入力してください");
+        alert("グループ名が既に存在します。別のグループ名を入力してください");
       } else {
         alert("保存中にエラーが発生しました");
       }
@@ -118,15 +118,15 @@ export default function ManagePanel() {
   // 削除
   const handleDelete = async (id: number) => {
     if (isSaving) return; // 二重操作防止
-    if (!confirm("本当にこのクラスを削除しますか？")) return;
+    if (!confirm("本当にこのグループを削除しますか？")) return;
 
     try {
       setIsSaving(true);
-      await lotteryDB.deleteClass(id);
-      if (selectedClassId === id) {
-        setSelectedClassId(null);
+      await lotteryDB.deleteGroup(id);
+      if (selectedGroupId === id) {
+        setSelectedGroupId(null);
       }
-      await loadClasses();
+      await loadGroups();
     } catch (error) {
       console.error("削除に失敗しました:", error);
     } finally {
@@ -136,7 +136,7 @@ export default function ManagePanel() {
 
   // 新規追加モードへ
   const switchToNew = () => {
-    setSelectedClassId(null);
+    setSelectedGroupId(null);
     setEditName("");
     setEditItemsText("");
     setEditLotteryMessage("");
@@ -154,7 +154,7 @@ export default function ManagePanel() {
   return (
     <div className="max-w-5xl mx-auto p-6 bg-slate-50 min-h-screen">
       <div className="flex flex-col md:flex-row gap-8">
-        {/* 左側：クラス一覧サイドバー */}
+        {/* 左側：グループ一覧サイドバー */}
         <aside className="w-full md:w-1/3 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-indigo-50/50">
             <h2 className="font-bold text-slate-800">グループ一覧</h2>
@@ -166,31 +166,31 @@ export default function ManagePanel() {
             </button>
           </div>
           <div className="divide-y divide-slate-100 max-h-[500px] overflow-y-auto">
-            {classes.length === 0 ? (
+            {groups.length === 0 ? (
               <p className="p-8 text-center text-slate-400 text-sm">
                 登録されているグループはありません
               </p>
             ) : (
-              classes.map((cls) => (
+              groups.map((group) => (
                 <div
-                  key={cls.id}
-                  onClick={() => setSelectedClassId(cls.id)}
+                  key={group.id}
+                  onClick={() => setSelectedGroupId(group.id)}
                   className={`group p-4 cursor-pointer transition-all flex justify-between items-center ${
-                    selectedClassId === cls.id
+                    selectedGroupId === group.id
                       ? "bg-indigo-50 border-r-4 border-indigo-600"
                       : "hover:bg-slate-50"
                   }`}
                 >
                   <div>
-                    <div className="font-medium text-slate-900">{cls.name}</div>
+                    <div className="font-medium text-slate-900">{group.name}</div>
                     <div className="text-xs text-slate-500">
-                      {cls.items.length} 名登録
+                      {group.items.length} 名登録
                     </div>
                   </div>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleDelete(cls.id);
+                      handleDelete(group.id);
                     }}
                     className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-red-600 transition-all"
                     title="削除"
@@ -226,12 +226,12 @@ export default function ManagePanel() {
               {isEditing ? "グループの編集" : "新しいグループを作成"}
             </h1>
             <p className="text-slate-500 text-sm mt-1">
-              クラス名と名簿を入力して保存ボタンを押してください。
+              グループ名と名簿を入力して保存ボタンを押してください。
             </p>
           </header>
 
           <div className="space-y-6">
-            {/* クラス名入力 */}
+            {/* グループ名入力 */}
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">
                 グループ名
@@ -240,7 +240,7 @@ export default function ManagePanel() {
                 type="text"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                placeholder="例: 3年1組, 数学B"
+                placeholder="例: 営業部, 開発チームA"
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 outline-none transition-all"
               />
             </div>

@@ -1,22 +1,22 @@
 // IndexedDBを操作するモジュール
 // - データベース名: "NominationToolDB"
-// - バージョン: 2
+// - バージョン: 3
 // - オブジェクトストア:
-//   - "classes": { id, name, items(カンマ区切り文字列), createdAt, updatedAt }
-//   - "nominations": { id, classId, itemName, createdAt }
+//   - "groups": { id, name, items(カンマ区切り文字列), createdAt, updatedAt }
+//   - "nominations": { id, groupId, itemName, createdAt }
 
 // 主要な関数
-// openDB()…IndexedDB「NominationToolDB」を開く。初回時にスキーマ（classes, nominations）を作成
+// openDB()…IndexedDB「NominationToolDB」を開く。初回時にスキーマ（groups, nominations）を作成
 // _executeTransaction()…トランザクション実行のヘルパー関数。readwrite/readonlyモード対応
 
-// クラス関連の操作
+// グループ関連の操作
 // 関数名	役割
-// addClass(classData)	新しいクラスを追加。タイムスタンプ自動付与
-// updateClass(id, updates)	クラスを更新。updatedAtを自動更新
-// deleteClass(id)	クラスを削除
-// getAllClasses()	全クラスを取得
-// findClassById(id)	IDでクラスを検索
-// findClassesByName(name)	名前でクラスを検索（インデックス利用）
+// addGroup(groupData)	新しいグループを追加。タイムスタンプ自動付与
+// updateGroup(id, updates)	グループを更新。updatedAtを自動更新
+// deleteGroup(id)	グループを削除
+// getAllGroups()	全グループを取得
+// findGroupById(id)	IDでグループを検索
+// findGroupsByName(name)	名前でグループを検索（インデックス利用）
 
 // ノミネーション関連の操作
 // 関数名	役割
@@ -24,15 +24,15 @@
 // updateNomination(id, updates)	ノミネーションを更新
 // deleteNomination(id)	ノミネーションを削除
 // getAllNominations()	全ノミネーションを取得
-// findNominationsByClassId(classId)	クラスIDでノミネーションを検索
+// findNominationsByGroupId(groupId)	グループIDでノミネーションを検索
 // findNominationsByDate(date)	日付でノミネーションを検索
 
 const DB_NAME = "NominationToolDB";
-const DB_VERSION = 2;
-const STORE_CLASSES = "classes";
+const DB_VERSION = 3;
+const STORE_GROUPS = "groups";
 const STORE_NOMINATIONS = "nominations";
 
-export type Class = {
+export type Group = {
   id: number;
   name: string;
   items: string[]; // カンマ区切りの文字列 (例)"aaa,bbb,ccc" "aaa,bbb"など
@@ -43,7 +43,7 @@ export type Class = {
 
 export type Nominations = {
   id: number;
-  classId: number;
+  groupId: number;
   itemName: string;
   createdAt: string;
 };
@@ -69,33 +69,66 @@ export async function openDB(): Promise<IDBDatabase> {
       const transaction = (event.target as IDBOpenDBRequest).transaction!;
       const oldVersion = event.oldVersion;
 
-      let classStore: IDBObjectStore;
-      if (!database.objectStoreNames.contains(STORE_CLASSES)) {
-        classStore = database.createObjectStore(STORE_CLASSES, {
+      // ====== 1. groups ストアの作成 ======
+      let groupStore: IDBObjectStore;
+      if (!database.objectStoreNames.contains(STORE_GROUPS)) {
+        groupStore = database.createObjectStore(STORE_GROUPS, {
           keyPath: "id",
           autoIncrement: true,
         });
-        // 新規作成時は最初からユニークインデックスを作成
-        classStore.createIndex("name", "name", { unique: true });
+        groupStore.createIndex("name", "name", { unique: true });
       } else {
-        classStore = transaction.objectStore(STORE_CLASSES);
+        groupStore = transaction.objectStore(STORE_GROUPS);
+      }
 
-        // v1 → v2 アップグレード時、既存のインデックスを削除して再作成
-        if (oldVersion < 2 && classStore.indexNames.contains("name")) {
-          classStore.deleteIndex("name");
-          classStore.createIndex("name", "name", { unique: true });
+      // ====== 2. v2からv3へのマイグレーション（データ移行） ======
+      if (oldVersion > 0 && oldVersion < 3) {
+        // (A) classes ストアのデータを groups ストアにコピー
+        if (database.objectStoreNames.contains("classes")) {
+          const oldClassStore = transaction.objectStore("classes");
+          oldClassStore.openCursor().onsuccess = (e) => {
+            const cursor = (e.target as IDBRequest<IDBCursorWithValue>).result;
+            if (cursor) {
+              groupStore.add(cursor.value);
+              cursor.continue();
+            }
+          };
+        }
+
+        // (B) nominations ストアの classId を groupId に置換し、インデックスを張り替える
+        if (database.objectStoreNames.contains(STORE_NOMINATIONS)) {
+          const nominationStore = transaction.objectStore(STORE_NOMINATIONS);
+          
+          if (nominationStore.indexNames.contains("classId")) {
+            nominationStore.deleteIndex("classId");
+          }
+          if (!nominationStore.indexNames.contains("groupId")) {
+            nominationStore.createIndex("groupId", "groupId", { unique: false });
+          }
+
+          nominationStore.openCursor().onsuccess = (e) => {
+            const cursor = (e.target as IDBRequest<IDBCursorWithValue>).result;
+            if (cursor) {
+              const record = cursor.value;
+              if (record.classId !== undefined) {
+                record.groupId = record.classId;
+                delete record.classId;
+                cursor.update(record);
+              }
+              cursor.continue();
+            }
+          };
         }
       }
 
+      // ====== 3. nominations ストアの新規作成 (初回インストール時) ======
       if (!database.objectStoreNames.contains(STORE_NOMINATIONS)) {
         const nominationStore = database.createObjectStore(STORE_NOMINATIONS, {
           keyPath: "id",
           autoIncrement: true,
         });
-        nominationStore.createIndex("classId", "classId", { unique: false });
-        nominationStore.createIndex("createdAt", "createdAt", {
-          unique: false,
-        });
+        nominationStore.createIndex("groupId", "groupId", { unique: false });
+        nominationStore.createIndex("createdAt", "createdAt", { unique: false });
       }
     };
   });
@@ -130,37 +163,37 @@ async function _executeTransaction(
   });
 }
 
-// =============クラス関連の操作=============
-// クラスの追加
-export async function addClass(
-  classData: Omit<Class, "id" | "createdAt" | "updatedAt">,
+// =============グループ関連の操作=============
+// グループの追加
+export async function addGroup(
+  groupData: Omit<Group, "id" | "createdAt" | "updatedAt">,
 ) {
   const now = new Date().toISOString();
-  const classWithTimestamps = {
-    ...classData,
+  const groupWithTimestamps = {
+    ...groupData,
     createdAt: now,
     updatedAt: now,
   };
 
-  return _executeTransaction(STORE_CLASSES, "readwrite", (store) => {
-    return store.add(classWithTimestamps);
+  return _executeTransaction(STORE_GROUPS, "readwrite", (store) => {
+    return store.add(groupWithTimestamps);
   });
 }
 
-// クラスの更新
-export async function updateClass(id: number, updates: Partial<Class>) {
+// グループの更新
+export async function updateGroup(id: number, updates: Partial<Group>) {
   if (!db) db = await openDB();
   return new Promise<void>((resolve, reject) => {
-    const transaction = db!.transaction([STORE_CLASSES], "readwrite");
-    const store = transaction.objectStore(STORE_CLASSES);
+    const transaction = db!.transaction([STORE_GROUPS], "readwrite");
+    const store = transaction.objectStore(STORE_GROUPS);
     const request = store.get(id);
 
     request.onsuccess = () => {
-      const existingClass = request.result;
-      if (existingClass) {
+      const existingGroup = request.result;
+      if (existingGroup) {
         const now = new Date().toISOString();
-        Object.assign(existingClass, { ...updates, updatedAt: now });
-        store.put(existingClass);
+        Object.assign(existingGroup, { ...updates, updatedAt: now });
+        store.put(existingGroup);
       }
     };
 
@@ -170,35 +203,60 @@ export async function updateClass(id: number, updates: Partial<Class>) {
   });
 }
 
-// クラスの削除
-export async function deleteClass(id: number) {
-  await deleteNominationsByClassId(id);
-  return _executeTransaction(STORE_CLASSES, "readwrite", (store) => {
-    return store.delete(id);
+// グループと関連するノミネーションの削除
+export async function deleteGroup(id: number) {
+  if (!db) db = await openDB();
+
+  return new Promise<void>((resolve, reject) => {
+    const transaction = db!.transaction(
+      [STORE_GROUPS, STORE_NOMINATIONS],
+      "readwrite",
+    );
+    const groupStore = transaction.objectStore(STORE_GROUPS);
+    const nominationStore = transaction.objectStore(STORE_NOMINATIONS);
+    const cursorRequest = nominationStore
+      .index("groupId")
+      .openKeyCursor(IDBKeyRange.only(id));
+
+    cursorRequest.onsuccess = () => {
+      const cursor = cursorRequest.result;
+      if (cursor) {
+        nominationStore.delete(cursor.primaryKey);
+        cursor.continue();
+        return;
+      }
+
+      groupStore.delete(id);
+    };
+
+    cursorRequest.onerror = () => reject(cursorRequest.error);
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(new Error("Transaction aborted"));
   });
 }
 
-// 全クラスの取得
-export async function getAllClasses(): Promise<Class[]> {
-  return _executeTransaction(STORE_CLASSES, "readonly", (store) => {
+// 全グループの取得
+export async function getAllGroups(): Promise<Group[]> {
+  return _executeTransaction(STORE_GROUPS, "readonly", (store) => {
     return store.getAll();
-  }) as Promise<Class[]>;
+  }) as Promise<Group[]>;
 }
 
-// クラスIDでクラスを検索
-export async function findClassById(id: number): Promise<Class | undefined> {
-  return _executeTransaction(STORE_CLASSES, "readonly", (store) => {
+// グループIDでグループを検索
+export async function findGroupById(id: number): Promise<Group | undefined> {
+  return _executeTransaction(STORE_GROUPS, "readonly", (store) => {
     return store.get(id);
-  }) as Promise<Class | undefined>;
+  }) as Promise<Group | undefined>;
 }
 
-// クラス名でクラスを検索
-export async function findClassesByName(name: string): Promise<Class[]> {
-  return _executeTransaction(STORE_CLASSES, "readonly", (store) => {
+// グループ名でグループを検索
+export async function findGroupsByName(name: string): Promise<Group[]> {
+  return _executeTransaction(STORE_GROUPS, "readonly", (store) => {
     const index = store.index("name");
     const request = index.getAll(IDBKeyRange.only(name));
     return request;
-  }) as Promise<Class[]>;
+  }) as Promise<Group[]>;
 }
 
 // =============ノミネーション関連の操作=============
@@ -256,13 +314,13 @@ export async function getAllNominations(): Promise<Nominations[]> {
   }) as Promise<Nominations[]>;
 }
 
-// クラス名でノミネーションを検索
-export async function findNominationsByClassId(
-  classId: number,
+// グループIDでノミネーションを検索
+export async function findNominationsByGroupId(
+  groupId: number,
 ): Promise<Nominations[]> {
   return _executeTransaction(STORE_NOMINATIONS, "readonly", (store) => {
-    const index = store.index("classId");
-    const request = index.getAll(IDBKeyRange.only(classId));
+    const index = store.index("groupId");
+    const request = index.getAll(IDBKeyRange.only(groupId));
     return request;
   }) as Promise<Nominations[]>;
 }
@@ -281,8 +339,8 @@ export async function findNominationsByDate(
     return request;
   }) as Promise<Nominations[]>;
 }
-// クラスIDでノミネーションを一括削除
-export async function deleteNominationsByClassId(classId: number) {
+// グループIDでノミネーションを一括削除
+export async function deleteNominationsByGroupId(groupId: number) {
   if (!db) {
     db = await openDB();
   }
@@ -290,8 +348,8 @@ export async function deleteNominationsByClassId(classId: number) {
   return new Promise<void>((resolve, reject) => {
     const transaction = db!.transaction([STORE_NOMINATIONS], "readwrite");
     const store = transaction.objectStore(STORE_NOMINATIONS);
-    const index = store.index("classId");
-    const request = index.openKeyCursor(IDBKeyRange.only(classId));
+    const index = store.index("groupId");
+    const request = index.openKeyCursor(IDBKeyRange.only(groupId));
 
     request.onsuccess = () => {
       const cursor = request.result;
