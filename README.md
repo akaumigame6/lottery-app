@@ -1,4 +1,4 @@
-# lottery-app
+# LOTTERY APP
 
 React、TypeScript、Tailwind CSS を使用し、IndexedDBでデータを永続化した「抽選アプリ」です。
 
