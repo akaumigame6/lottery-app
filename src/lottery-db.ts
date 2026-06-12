@@ -98,12 +98,14 @@ export async function openDB(): Promise<IDBDatabase> {
         // (B) nominations ストアの classId を groupId に置換し、インデックスを張り替える
         if (database.objectStoreNames.contains(STORE_NOMINATIONS)) {
           const nominationStore = transaction.objectStore(STORE_NOMINATIONS);
-          
+
           if (nominationStore.indexNames.contains("classId")) {
             nominationStore.deleteIndex("classId");
           }
           if (!nominationStore.indexNames.contains("groupId")) {
-            nominationStore.createIndex("groupId", "groupId", { unique: false });
+            nominationStore.createIndex("groupId", "groupId", {
+              unique: false,
+            });
           }
 
           nominationStore.openCursor().onsuccess = (e) => {
@@ -128,7 +130,9 @@ export async function openDB(): Promise<IDBDatabase> {
           autoIncrement: true,
         });
         nominationStore.createIndex("groupId", "groupId", { unique: false });
-        nominationStore.createIndex("createdAt", "createdAt", { unique: false });
+        nominationStore.createIndex("createdAt", "createdAt", {
+          unique: false,
+        });
       }
     };
   });
@@ -181,7 +185,10 @@ export async function addGroup(
 }
 
 // グループの更新
-export async function updateGroup(id: number, updates: Partial<Group>) {
+export async function updateGroup(
+  id: number,
+  updates: Partial<Omit<Group, "id" | "createdAt" | "updatedAt">>,
+) {
   if (!db) db = await openDB();
   return new Promise<void>((resolve, reject) => {
     const transaction = db!.transaction([STORE_GROUPS], "readwrite");
@@ -192,7 +199,14 @@ export async function updateGroup(id: number, updates: Partial<Group>) {
       const existingGroup = request.result;
       if (existingGroup) {
         const now = new Date().toISOString();
-        Object.assign(existingGroup, { ...updates, updatedAt: now });
+
+        // 不変フィールドの実行時フィルタリング
+        const filteredUpdates = { ...updates };
+        if ("id" in filteredUpdates) delete (filteredUpdates as any).id;
+        if ("createdAt" in filteredUpdates)
+          delete (filteredUpdates as any).createdAt;
+
+        Object.assign(existingGroup, filteredUpdates, { updatedAt: now });
         store.put(existingGroup);
       }
     };
@@ -277,7 +291,7 @@ export async function addNomination(
 // ノミネーションの更新
 export async function updateNomination(
   id: number,
-  updates: Partial<Nominations>,
+  updates: Partial<Omit<Nominations, "id" | "createdAt">>,
 ) {
   if (!db) db = await openDB();
   return new Promise<void>((resolve, reject) => {
@@ -289,7 +303,14 @@ export async function updateNomination(
       const existingNomination = request.result;
       if (existingNomination) {
         const now = new Date().toISOString();
-        Object.assign(existingNomination, { ...updates, updatedAt: now });
+
+        // 不変フィールドの実行時フィルタリング
+        const filteredUpdates = { ...updates };
+        if ("id" in filteredUpdates) delete (filteredUpdates as any).id;
+        if ("createdAt" in filteredUpdates)
+          delete (filteredUpdates as any).createdAt;
+
+        Object.assign(existingNomination, filteredUpdates);
         store.put(existingNomination);
       }
     };
