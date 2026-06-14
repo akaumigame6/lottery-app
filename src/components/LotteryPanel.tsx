@@ -321,7 +321,7 @@ export default function LotteryPanel({
 
                   {/* item2: 中段 (メイン: 特大) */}
                   <div
-                    className={`font-black tracking-tight leading-none ${textSizeClass} min-h-[1em] break-words whitespace-pre-wrap px-4`}
+                    className={`font-black tracking-tight leading-none ${textSizeClass} min-h-[1em] wrap-break-word whitespace-pre-wrap px-4`}
                   >
                     {mainText}
                   </div>
