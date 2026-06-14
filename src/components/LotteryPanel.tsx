@@ -274,7 +274,7 @@ export default function LotteryPanel({
       `}
       >
         <div
-          className={`flex-1 flex flex-col items-center justify-center p-8 space-y-6 ${isFullscreen ? "bg-white " : "text-slate-900"}`}
+          className={`flex-1 flex flex-col items-center justify-center p-8 space-y-6 min-h-0 overflow-y-auto ${isFullscreen ? "bg-white " : "text-slate-900"}`}
         >
           <div className="text-center w-full">
             {(() => {
@@ -295,6 +295,19 @@ export default function LotteryPanel({
                 }
               }
 
+              const mainText = item1 || (isDrawing ? "" : "READY?");
+              const textLength = mainText.length;
+              let textSizeClass = "";
+              if (isFullscreen) {
+                if (textLength > 20) textSizeClass = "text-[6rem]";
+                else if (textLength > 10) textSizeClass = "text-[10rem]";
+                else textSizeClass = "text-[15rem]";
+              } else {
+                if (textLength > 20) textSizeClass = "text-4xl";
+                else if (textLength > 10) textSizeClass = "text-6xl";
+                else textSizeClass = "text-8xl";
+              }
+
               return (
                 <div className="space-y-4">
                   {/* item1: 上段 (小さめ) */}
@@ -308,9 +321,9 @@ export default function LotteryPanel({
 
                   {/* item2: 中段 (メイン: 特大) */}
                   <div
-                    className={`font-black tracking-tight leading-none ${isFullscreen ? "text-[15rem]" : "text-8xl"} min-h-[1em]`}
+                    className={`font-black tracking-tight leading-none ${textSizeClass} min-h-[1em] break-words whitespace-pre-wrap px-4`}
                   >
-                    {item1 || (isDrawing ? "" : "READY?")}
+                    {mainText}
                   </div>
 
                   {/* item3: 下段 (メッセージ等) */}
