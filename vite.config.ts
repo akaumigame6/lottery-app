@@ -24,8 +24,8 @@ export default defineConfig(() => {
     build: {
       outDir: isLocalBuild ? "dist-local" : "dist",
       target: "esnext",
-      assetsInlineLimit: 100000000,
-      chunkSizeWarningLimit: 100000000,
+      assetsInlineLimit: isLocalBuild ? 100000000 : undefined,
+      chunkSizeWarningLimit: isLocalBuild ? 100000000 : undefined,
     },
   };
 });
