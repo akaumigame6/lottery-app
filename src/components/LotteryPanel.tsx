@@ -353,6 +353,7 @@ export default function LotteryPanel({
               onClick={handleDraw}
               disabled={isDrawing || (mode === "round-robin" && isAllDrawn)}
               className={`
+                tour-draw-button
                 px-16 py-3 rounded-xl font-bold transition-all active:scale-95
                 ${isFullscreen ? " bg-indigo-600 hover:bg-indigo-700 text-white text-3xl px-12 py-4 rounded-3xl shadow-2xl" : "bg-indigo-600 text-white text-2xl shadow-md shadow-indigo-100 hover:bg-indigo-700"}
                 disabled:opacity-0 disabled:pointer-events-none

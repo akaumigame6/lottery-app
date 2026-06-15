@@ -155,7 +155,7 @@ export default function ManagePanel() {
     <div className="max-w-5xl mx-auto p-6 bg-slate-50 min-h-screen">
       <div className="flex flex-col md:flex-row gap-8">
         {/* 左側：グループ一覧サイドバー */}
-        <aside className="w-full md:w-1/3 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <aside className="tour-manage-sidebar w-full md:w-1/3 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-indigo-50/50">
             <h2 className="font-bold text-slate-800">グループ一覧</h2>
             <button
