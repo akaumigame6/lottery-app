@@ -1,46 +1,46 @@
-// IndexedDBを操作するモジュール
-// - データベース名: "NominationToolDB"
-// - バージョン: 3
-// - オブジェクトストア:
-//   - "groups": { id, name, items(カンマ区切り文字列), createdAt, updatedAt }
-//   - "nominations": { id, groupId, itemName, createdAt }
-
-// 主要な関数
-// openDB()…IndexedDB「NominationToolDB」を開く。初回時にスキーマ（groups, nominations）を作成
-// _executeTransaction()…トランザクション実行のヘルパー関数。readwrite/readonlyモード対応
-
-// グループ関連の操作
-// 関数名	役割
-// addGroup(groupData)	新しいグループを追加。タイムスタンプ自動付与
-// updateGroup(id, updates)	グループを更新。updatedAtを自動更新
-// deleteGroup(id)	グループを削除
-// getAllGroups()	全グループを取得
-// findGroupById(id)	IDでグループを検索
-// findGroupsByName(name)	名前でグループを検索（インデックス利用）
-
-// ノミネーション関連の操作
-// 関数名	役割
-// addNomination(nominationData)	ノミネーションを追加。createdAt自動付与
-// updateNomination(id, updates)	ノミネーションを更新
-// deleteNomination(id)	ノミネーションを削除
-// getAllNominations()	全ノミネーションを取得
-// findNominationsByGroupId(groupId)	グループIDでノミネーションを検索
-// findNominationsByDate(date)	日付でノミネーションを検索
+/**
+ * IndexedDBを操作するモジュール
+ *
+ * データベース仕様:
+ * - データベース名: "NominationToolDB"
+ * - バージョン: 3
+ * - オブジェクトストア:
+ *   - "groups": グループの管理
+ *   - "nominations": 抽選履歴の管理
+ */
 
 const DB_NAME = "NominationToolDB";
 const DB_VERSION = 3;
 const STORE_GROUPS = "groups";
 const STORE_NOMINATIONS = "nominations";
 
+/**
+ * グループ型定義
+ * @typedef {Object} Group
+ * @property {number} id - グループのID（自動採番）
+ * @property {string} name - グループ名（ユニーク）
+ * @property {string[]} items - グループに属する項目リスト
+ * @property {string} [lotteryMessage] - 抽選後に表示するメッセージ
+ * @property {string} createdAt - 作成日時（ISO 8601形式）
+ * @property {string} updatedAt - 更新日時（ISO 8601形式）
+ */
 export type Group = {
   id: number;
   name: string;
-  items: string[]; // カンマ区切りの文字列 (例)"aaa,bbb,ccc" "aaa,bbb"など
-  lotteryMessage?: string; // 抽選後のメッセージ
+  items: string[];
+  lotteryMessage?: string;
   createdAt: string;
   updatedAt: string;
 };
 
+/**
+ * ノミネーション型定義（抽選履歴）
+ * @typedef {Object} Nominations
+ * @property {number} id - ノミネーションID（自動採番）
+ * @property {number} groupId - 所属するグループのID
+ * @property {string} itemName - 抽選された項目名
+ * @property {string} createdAt - 抽選日時（ISO 8601形式）
+ */
 export type Nominations = {
   id: number;
   groupId: number;
@@ -50,6 +50,15 @@ export type Nominations = {
 
 let db: IDBDatabase | null = null;
 
+/**
+ * IndexedDBを開く（初回時はスキーマを自動作成）
+ *
+ * 初回インストール時にgroupsとnominationsのオブジェクトストアを作成します。
+ * v2からv3へのマイグレーションにも対応しています。
+ *
+ * @returns {Promise<IDBDatabase>} 開かれたデータベースのインスタンス
+ * @throws {Error} データベース接続に失敗した場合
+ */
 export async function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
@@ -140,6 +149,14 @@ export async function openDB(): Promise<IDBDatabase> {
 
 /**
  * トランザクションを実行するヘルパー関数
+ *
+ * IndexedDBの読み取り・書き込みトランザクションを統一的に実行します。
+ *
+ * @private
+ * @param {string} storeName - オブジェクトストア名
+ * @param {IDBTransactionMode} [mode] - トランザクションモード（"readonly"または"readwrite"）
+ * @param {Function} callback - ストアで実行するコールバック関数
+ * @returns {Promise<unknown>} トランザクション完了時の結果
  */
 async function _executeTransaction(
   storeName: string,
@@ -168,7 +185,15 @@ async function _executeTransaction(
 }
 
 // =============グループ関連の操作=============
-// グループの追加
+
+/**
+ * 新しいグループを追加
+ *
+ * グループにタイムスタンプ（createdAt, updatedAt）を自動付与します。
+ *
+ * @param {Omit<Group, 'id' | 'createdAt' | 'updatedAt'>} groupData - グループデータ
+ * @returns {Promise<IDBValidKey>} 作成されたグループのID
+ */
 export async function addGroup(
   groupData: Omit<Group, "id" | "createdAt" | "updatedAt">,
 ) {
@@ -185,6 +210,16 @@ export async function addGroup(
 }
 
 // グループの更新
+
+/**
+ * グループを更新
+ *
+ * updatedAtを自動更新します。id, createdAtの変更は無視されます。
+ *
+ * @param {number} id - グループID
+ * @param {Partial<Omit<Group, 'id' | 'createdAt' | 'updatedAt'>>} updates - 更新内容
+ * @returns {Promise<void>}
+ */
 export async function updateGroup(
   id: number,
   updates: Partial<Omit<Group, "id" | "createdAt" | "updatedAt">>,
@@ -218,6 +253,15 @@ export async function updateGroup(
 }
 
 // グループと関連するノミネーションの削除
+
+/**
+ * グループを削除（関連するノミネーションも削除）
+ *
+ * グループを削除する際に、そのグループに紐づくすべてのノミネーション（抽選履歴）も削除します。
+ *
+ * @param {number} id - グループID
+ * @returns {Promise<void>}
+ */
 export async function deleteGroup(id: number) {
   if (!db) db = await openDB();
 
@@ -251,6 +295,12 @@ export async function deleteGroup(id: number) {
 }
 
 // 全グループの取得
+
+/**
+ * すべてのグループを取得
+ *
+ * @returns {Promise<Group[]>} すべてのグループの配列
+ */
 export async function getAllGroups(): Promise<Group[]> {
   return _executeTransaction(STORE_GROUPS, "readonly", (store) => {
     return store.getAll();
@@ -258,6 +308,13 @@ export async function getAllGroups(): Promise<Group[]> {
 }
 
 // グループIDでグループを検索
+
+/**
+ * グループをIDで検索
+ *
+ * @param {number} id - グループID
+ * @returns {Promise<Group|undefined>} 見つかったグループ、見つからない場合はundefined
+ */
 export async function findGroupById(id: number): Promise<Group | undefined> {
   return _executeTransaction(STORE_GROUPS, "readonly", (store) => {
     return store.get(id);
@@ -265,6 +322,15 @@ export async function findGroupById(id: number): Promise<Group | undefined> {
 }
 
 // グループ名でグループを検索
+
+/**
+ * グループを名前で検索（インデックス利用）
+ *
+ * グループ名はユニークなため、結果は最大1件です。
+ *
+ * @param {string} name - グループ名
+ * @returns {Promise<Group[]>} マッチしたグループの配列
+ */
 export async function findGroupsByName(name: string): Promise<Group[]> {
   return _executeTransaction(STORE_GROUPS, "readonly", (store) => {
     const index = store.index("name");
@@ -274,7 +340,15 @@ export async function findGroupsByName(name: string): Promise<Group[]> {
 }
 
 // =============ノミネーション関連の操作=============
-// ノミネーションの追加
+
+/**
+ * ノミネーション（抽選履歴）を追加
+ *
+ * createdAtを自動付与します。
+ *
+ * @param {Omit<Nominations, 'id' | 'createdAt'>} nominationData - ノミネーションデータ
+ * @returns {Promise<IDBValidKey>} 作成されたノミネーションのID
+ */
 export async function addNomination(
   nominationData: Omit<Nominations, "id" | "createdAt">,
 ) {
@@ -289,6 +363,16 @@ export async function addNomination(
   });
 }
 // ノミネーションの更新
+
+/**
+ * ノミネーションを更新
+ *
+ * id, createdAtの変更は無視されます。
+ *
+ * @param {number} id - ノミネーションID
+ * @param {Partial<Omit<Nominations, 'id' | 'createdAt'>>} updates - 更新内容
+ * @returns {Promise<void>}
+ */
 export async function updateNomination(
   id: number,
   updates: Partial<Omit<Nominations, "id" | "createdAt">>,
@@ -322,6 +406,13 @@ export async function updateNomination(
 }
 
 // ノミネーションの削除
+
+/**
+ * ノミネーションを削除
+ *
+ * @param {number} id - ノミネーションID
+ * @returns {Promise<IDBValidKey>} 削除したキー
+ */
 export async function deleteNomination(id: number) {
   return _executeTransaction(STORE_NOMINATIONS, "readwrite", (store) => {
     return store.delete(id);
@@ -329,6 +420,12 @@ export async function deleteNomination(id: number) {
 }
 
 // 全ノミネーションの取得
+
+/**
+ * すべてのノミネーションを取得
+ *
+ * @returns {Promise<Nominations[]>} すべてのノミネーションの配列
+ */
 export async function getAllNominations(): Promise<Nominations[]> {
   return _executeTransaction(STORE_NOMINATIONS, "readonly", (store) => {
     return store.getAll();
@@ -336,6 +433,15 @@ export async function getAllNominations(): Promise<Nominations[]> {
 }
 
 // グループIDでノミネーションを検索
+
+/**
+ * グループIDでノミネーションを検索
+ *
+ * 指定されたグループに紐づくすべての抽選履歴を取得します。
+ *
+ * @param {number} groupId - グループID
+ * @returns {Promise<Nominations[]>} マッチしたノミネーションの配列
+ */
 export async function findNominationsByGroupId(
   groupId: number,
 ): Promise<Nominations[]> {
@@ -347,6 +453,15 @@ export async function findNominationsByGroupId(
 }
 
 // 日付でノミネーションを検索
+
+/**
+ * 日付でノミネーションを検索
+ *
+ * 指定された日付（YYYY-MM-DD形式）の全抽選履歴を取得します。
+ *
+ * @param {string} date - 検索日付（YYYY-MM-DD形式）
+ * @returns {Promise<Nominations[]>} マッチしたノミネーションの配列
+ */
 export async function findNominationsByDate(
   date: string,
 ): Promise<Nominations[]> {
@@ -360,7 +475,17 @@ export async function findNominationsByDate(
     return request;
   }) as Promise<Nominations[]>;
 }
+
 // グループIDでノミネーションを一括削除
+
+/**
+ * グループIDでノミネーションを一括削除
+ *
+ * 指定されたグループに紐づくすべての抽選履歴を削除します。
+ *
+ * @param {number} groupId - グループID
+ * @returns {Promise<void>}
+ */
 export async function deleteNominationsByGroupId(groupId: number) {
   if (!db) {
     db = await openDB();
