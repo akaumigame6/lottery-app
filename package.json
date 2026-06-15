@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "build:local": "tsc -b && cross-env BUILD_TARGET=local vite build",
+    "build:local": "tsc -b && cross-env BUILD_TARGET=local vite build && powershell -Command \"Get-ChildItem dist-local -Exclude index.html | Remove-Item -Force -Recurse\"",
     "lint": "eslint .",
     "preview": "vite preview"
   },
