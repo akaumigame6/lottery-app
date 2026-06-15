@@ -209,6 +209,22 @@ export async function addGroup(
   });
 }
 
+/**
+ * 初回チュートリアル用のダミーデータを挿入する
+ */
+export async function insertDummyData() {
+  return addGroup({
+    name: "サンプル名簿（操作を試してみよう）",
+    items: [
+      "岡部 倫太郎\tおかべ りんたろう",
+      "橋田 至\tはしだ いたる",
+      "桐生 萌郁\tきりゅう もえか",
+      "漆原 るか\tうるしばら るか",
+    ],
+    lotteryMessage: "🎉 おめでとうございます！ 🎉",
+  });
+}
+
 // グループの更新
 
 /**
