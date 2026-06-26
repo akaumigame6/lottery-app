@@ -198,7 +198,7 @@ export default function LotteryPanel({
   return (
     <div className="max-w-5xl mx-auto p-6 bg-slate-50 min-h-screen space-y-6">
       {/* 1. 設定セクション (ManagePanel のヘッダースタイル) */}
-      <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-wrap items-end gap-6">
+      <section className="tour-lottery-settings bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-wrap items-end gap-6">
         <div className="flex-1 min-w-[200px]">
           <label className="block text-sm font-semibold text-slate-700 mb-2">
             グループ選択
@@ -211,7 +211,7 @@ export default function LotteryPanel({
               setSelectedGroupId(newId);
             }}
             disabled={isDrawing}
-            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 outline-none transition-all font-medium text-slate-900 bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="tour-lottery-group-select w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 outline-none transition-all font-medium text-slate-900 bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {groups.map((group) => (
               <option key={group.id} value={group.id}>
@@ -221,11 +221,11 @@ export default function LotteryPanel({
           </select>
         </div>
 
-        <div className="flex bg-slate-100 p-1 rounded-xl items-center h-[52px]">
+        <div className="tour-lottery-mode-section flex bg-slate-100 p-1 rounded-xl items-center h-[52px]">
           <button
             onClick={() => setMode("random-no-save")}
             disabled={isDrawing}
-            className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
+            className={`tour-lottery-mode-random px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
               mode === "random-no-save"
                 ? "bg-white text-indigo-600 shadow-sm"
                 : "text-slate-500 hover:text-slate-700"
@@ -236,7 +236,7 @@ export default function LotteryPanel({
           <button
             onClick={() => setMode("round-robin")}
             disabled={isDrawing}
-            className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
+            className={`tour-lottery-mode-round-robin px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
               mode === "round-robin"
                 ? "bg-white text-indigo-600 shadow-sm"
                 : "text-slate-500 hover:text-slate-700"
@@ -270,6 +270,7 @@ export default function LotteryPanel({
       {/* 2. 抽選ステージ (ManagePanel のメインパネルに準拠したカード) */}
       <div
         className={`
+        tour-lottery-result
         ${isFullscreen ? "fixed inset-0 z-50  flex flex-col" : "relative bg-white rounded-2xl shadow-lg border border-slate-200 aspect-video max-h-[500px] flex flex-col overflow-hidden mx-auto"}
       `}
       >

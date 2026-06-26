@@ -182,7 +182,9 @@ export default function ManagePanel() {
                   }`}
                 >
                   <div>
-                    <div className="font-medium text-slate-900">{group.name}</div>
+                    <div className="font-medium text-slate-900">
+                      {group.name}
+                    </div>
                     <div className="text-xs text-slate-500">
                       {group.items.length} 名登録
                     </div>
@@ -220,7 +222,7 @@ export default function ManagePanel() {
         </aside>
 
         {/* 右側：編集パネル */}
-        <main className="flex-1 bg-white rounded-2xl shadow-lg border border-slate-200 p-6 md:p-8">
+        <main className="tour-manage-form flex-1 bg-white rounded-2xl shadow-lg border border-slate-200 p-6 md:p-8">
           <header className="mb-6">
             <h1 className="text-2xl font-bold text-slate-900">
               {isEditing ? "グループの編集" : "新しいグループを作成"}
@@ -232,7 +234,7 @@ export default function ManagePanel() {
 
           <div className="space-y-6">
             {/* グループ名入力 */}
-            <div>
+            <div className="tour-manage-group-name-section">
               <label className="block text-sm font-semibold text-slate-700 mb-2">
                 グループ名
               </label>
@@ -241,7 +243,7 @@ export default function ManagePanel() {
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
                 placeholder="例: 営業部, 開発チームA"
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 outline-none transition-all"
+                className="tour-manage-group-name w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 outline-none transition-all"
               />
             </div>
 
@@ -258,12 +260,13 @@ export default function ManagePanel() {
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 outline-none transition-all"
               />
               <p className="mt-2 text-xs text-slate-400">
-                ヒント: 未入力の場合は「おめでとうございます！」、半角・全角スペースのみの場合は何も表示しません。
+                ヒント:
+                未入力の場合は「おめでとうございます！」、半角・全角スペースのみの場合は何も表示しません。
               </p>
             </div>
 
             {/* 名簿入力（一括登録） */}
-            <div>
+            <div className="tour-manage-members-section">
               <div className="flex justify-between items-end mb-2">
                 <label className="block text-sm font-semibold text-slate-700">
                   名簿（1行に1人）
@@ -277,7 +280,7 @@ export default function ManagePanel() {
                 onChange={(e) => setEditItemsText(e.target.value)}
                 placeholder="Excelなどから名前のリストをコピーして貼り付けてください。"
                 rows={12}
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 outline-none transition-all resize-none font-mono text-sm leading-relaxed"
+                className="tour-manage-members w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 outline-none transition-all resize-none font-mono text-sm leading-relaxed"
               />
               <p className="mt-2 text-xs text-slate-400">
                 ヒント:
@@ -299,7 +302,7 @@ export default function ManagePanel() {
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="px-8 py-2.5 rounded-xl bg-indigo-600 text-white font-bold shadow-md shadow-indigo-200 hover:bg-indigo-700 hover:shadow-lg hover:-translate-y-0.5 transition-all active:translate-y-0"
+                className="tour-manage-save px-8 py-2.5 rounded-xl bg-indigo-600 text-white font-bold shadow-md shadow-indigo-200 hover:bg-indigo-700 hover:shadow-lg hover:-translate-y-0.5 transition-all active:translate-y-0"
               >
                 {isSaving
                   ? "保存中..."
