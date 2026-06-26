@@ -190,6 +190,14 @@ export default function App() {
         const groups = await getAllGroups();
         if (groups.length === 0) {
           await insertDummyData();
+          // ダミーデータ挿入後、LotteryPanel を再マウントさせて
+          // グループ一覧を確実に反映してからツアーを開始する
+          setActiveTab("manage");
+          setTimeout(() => {
+            setActiveTab("lottery");
+            setRunTour(true);
+          }, 100);
+          return;
         }
         setRunTour(true);
       }
@@ -261,7 +269,7 @@ export default function App() {
                 使い方
               </button>
 
-              <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
+              <div className="tour-tabs flex gap-1 bg-slate-100 p-1 rounded-xl">
                 <button
                   onClick={() => setActiveTab("lottery")}
                   disabled={isDrawing}
